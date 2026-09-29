@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pocket Finance</title>
+
+    <!-- Скрипты платформ и библиотек -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* Анимация подпрыгивания иконки при нажатии */
+        @keyframes icon-bounce {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            35% { transform: scale(1.3) rotate(-8deg); }
+            70% { transform: scale(0.92) rotate(4deg); }
+        }
+
+        .animate-pop {
+            display: inline-block;
+            animation: icon-bounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .cat-card, .tab-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased pb-8">
+
+    <div class="w-full max-w-md mx-auto px-4 pt-4 flex flex-col gap-4 flex-1">
+        
+        <!-- Карточка общего баланса -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl relative">
+            <div class="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">
+                <span>Общий баланс</span>
+                <button id="btn-reset" class="text-slate-500 hover:text-rose-400 p-1 transition-colors" title="Очистить историю">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div id="total-balance" class="text-3xl font-extrabold text-white tracking-tight mb-4">0 ₽</div>
+
+            <!-- Доходы / Расходы -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400">Доходы</div>
+                        <div id="total-income" class="text-sm font-bold text-emerald-400">+0 ₽</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3 flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
+                        <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="text-[11px] text-slate-400">Расходы</div>
+                        <div id="total-expense" class="text-sm font-bold text-rose-400">-0 ₽</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Прогресс-бар расходов -->
+            <div class="flex flex-col gap-1.5">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400 font-medium">Структура расходов</span>
+                    <span id="expense-structure-label" class="text-slate-500 font-semibold">Нет данных</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex" id="structure-bar"></div>
+                <div class="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Авто</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Еда</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-400"></span> Покупки</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Выбор категорий операций -->
+        <div>
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                Категория операции
+            </div>
+            <div class="grid grid-cols-5 gap-2" id="categories-grid">
+                <!-- Каждая кнопка имеет цветовую тему по data-category -->
+                <button type="button" class="cat-card flex flex-col items-center justify-center p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/50 ring-2 ring-amber-500 text-amber-400" data-category="Авто">
+                    <i data-lucide="car" class="w-5 h-5 mb-1.5 pointer-events-none"></i>
+                    <span class="text-[11px] font-medium pointer-events-none">Авто</span>
+                </button>
+                <button type="button" class="cat-card flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400" data-category="Еда">
+                    <i data-lucide="utensils" class="w-5 h-5 mb-1.5 pointer-events-none"></i>
+                    <span class="text-[11px] font-medium pointer-events-none">Еда</span>
+                </button>
+                <button type="button" class="cat-card flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-sky-400" data-category="Покупки">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 mb-1.5 pointer-events-none"></i>
+                    <span class="text-[11px] font-medium pointer-events-none">Покупки</span>
+                </button>
+                <button type="button" class="cat-card flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-purple-400" data-category="Заметка">
+                    <i data-lucide="file-text" class="w-5 h-5 mb-1.5 pointer-events-none"></i>
+                    <span class="text-[11px] font-medium pointer-events-none">Заметка</span>
+                </button>
+                <button type="button" class="cat-card flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400" data-category="Доход">
+                    <i data-lucide="banknote" class="w-5 h-5 mb-1.5 pointer-events-none"></i>
+                    <span class="text-[11px] font-medium pointer-events-none">Доход</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Форма добавления -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 flex flex-col gap-3 shadow-lg">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> Новая запись
+                </span>
+                <span id="current-cat-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    Авто / Топливо
+                </span>
+            </div>
+
+            <div class="flex gap-2">
+                <input id="input-note" type="text" placeholder="Название или заметка..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                <input id="input-amount" type="number" inputmode="decimal" placeholder="Сумма ₽" class="w-28 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+
+            <button id="btn-save" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Сохранить</span>
+            </button>
+        </div>
+
+        <!-- Разноцветные вкладки фильтрации и история -->
+        <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between px-1 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <span>История операций</span>
+                <span id="history-counter" class="text-[11px] text-slate-500">0 зап.</span>
+            </div>
+
+            <!-- Вкладки со своими цветами при активации -->
+            <div class="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-2xl">
+                <button type="button" class="tab-btn flex-1 py-1.5 text-xs font-semibold rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/20" data-tab="all">Все</button>
+                <button type="button" class="tab-btn flex-1 py-1.5 text-xs font-medium rounded-xl text-slate-400 hover:text-slate-200" data-tab="expense">Расходы</button>
+                <button type="button" class="tab-btn flex-1 py-1.5 text-xs font-medium rounded-xl text-slate-400 hover:text-slate-200" data-tab="income">Доходы</button>
+                <button type="button" class="tab-btn flex-1 py-1.5 text-xs font-medium rounded-xl text-slate-400 hover:text-slate-200" data-tab="note">Заметки</button>
+            </div>
+
+            <!-- Список записей -->
+            <div id="history-list" class="flex flex-col gap-2 mt-1"></div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
